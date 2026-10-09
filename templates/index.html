@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Notifier - Dataoorts</title>
+    <link rel="shortcut icon" href="/favicon.ico?v=2" type="image/png">
+    <link rel="icon" href="/dataoorts.png?v=2" type="image/png">
+    <!-- Google Fonts for Tech Look -->
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* =========================================
+           TECH THEME VARIABLES
+        ========================================= */
+        :root {
+            --bg-body: #050508;
+            --bg-panel: rgba(15, 15, 20, 0.7);
+            --bg-input: rgba(0, 0, 0, 0.5);
+            --border-color: #27272a;
+            --accent: #00e5ff;
+            --accent-dim: rgba(0, 229, 255, 0.1);
+            --danger: #ff2a5f;
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+            
+            --shadow-glow: 0 0 15px rgba(0, 229, 255, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            border-radius: 0; /* Square edges */
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            
+            /* Modern Grid & Glow Background */
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(0, 229, 255, 0.04), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(0, 229, 255, 0.03), transparent 25%),
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 30px 30px, 30px 30px;
+            background-attachment: fixed;
+        }
+
+        .hidden { display: none !important; opacity: 0; pointer-events: none; }
+
+        /* =========================================
+           LAYOUT: HEADER, MAIN, FOOTER
+        ========================================= */
+        .topbar {
+            height: 64px;
+            padding: 0 24px;
+            background: rgba(10, 10, 15, 0.85);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand { 
+            font-family: 'JetBrains Mono', monospace; 
+            font-size: 22px; 
+            font-weight: 700; 
+            color: var(--text-main); 
+        }
+        .brand span { color: var(--accent); }
+
+        .header-actions { display: flex; align-items: center; gap: 15px; }
+        .current-email { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+
+        .btn-header {
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 10px 24px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 0.5px;
+        }
+        .btn-header:hover {
+            background: var(--accent);
+            color: #000;
+            box-shadow: var(--shadow-glow);
+        }
+
+        main { flex: 1; display: flex; flex-direction: column; }
+        .container { width: 100%; max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+
+        footer {
+            text-align: center;
+            padding: 14px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border-color);
+            background: rgba(10, 10, 15, 0.85);
+            margin-top: auto;
+        }
+
+        /* =========================================
+           LOADING OVERLAY
+        ========================================= */
+        #loadingScreen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-body); z-index: 999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        #loadingScreen h2 { font-family: 'JetBrains Mono', monospace; color: var(--accent); }
+        #loadingScreen p { color: var(--text-muted); font-size: 14px; margin-top: 10px; }
+
+        /* =========================================
+           LOGIN SCREEN
+        ========================================= */
+        .login-screen {
+            flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px;
+        }
+        .login-card {
+            width: 100%; max-width: 530px; min-height: 350px;
+            background: var(--bg-panel); border: 2.0px solid var(--border-color);
+            padding: 40px 30px; text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        .login-card h2 { margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; font-size: 24px; margin-top: 30px; }
+        .login-card .subtitle { color: var(--text-muted); font-size: 15px; margin-bottom: 30px; }
+        
+        /* =========================================
+           TABS
+        ========================================= */
+        .tabs { display: flex; gap: 10px; margin-bottom: 30px; }
+        .tab-button {
+            flex: 1; background: var(--bg-panel); border: 1px solid var(--border-color);
+            padding: 14px; cursor: pointer; font-weight: 600; color: var(--text-muted);
+            transition: all 0.2s; font-size: 14px;
+        }
+        .tab-button:hover { border-color: var(--accent); color: var(--accent); }
+        .tab-button.active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+
+        /* =========================================
+           SLIDER PANELS & CARDS (SPACE ISSUE FIXED)
+        ========================================= */
+        .slider-wrapper { position: relative; width: 100%; overflow: hidden; }
+        .slider { position: relative; width: 100%; }
+        
+        /* Inactive panels take 0 space (absolute) */
+        .panel { 
+            position: absolute; 
+            top: 0; left: 0; width: 100%; 
+            opacity: 0; visibility: hidden; pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease; 
+            transform: translateY(15px);
+        }
+
+        /* Active panel takes exactly its own space (relative) */
+        .panel.active { 
+            position: relative; 
+            opacity: 1; visibility: visible; pointer-events: auto;
+            transform: translateY(0); 
+            z-index: 2;
+        }
+
+        .card { background: var(--bg-panel); border: 1px solid var(--border-color); padding: 30px; backdrop-filter: blur(5px); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .card h2 { font-family: 'JetBrains Mono', monospace; font-size: 20px; }
+        .card-description { color: var(--text-muted); font-size: 14px; margin-bottom: 25px; }
+
+        /* =========================================
+           FORMS & INPUTS
+        ========================================= */
+        .form-group { margin-bottom: 25px; position: relative; }
+        .form-group label { display: block; font-weight: 500; font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
+
+        .form-group input[type="email"],
+        .form-group input[type="text"] {
+            width: 100%; background: var(--bg-input); border: 1px solid var(--border-color);
+            color: var(--text-main); padding: 16px; font-size: 15px; transition: all 0.2s; outline: none;
+        }
+        .form-group input:focus { border-color: var(--accent); box-shadow: var(--shadow-glow); }
+        .email-input { opacity: 0.6; cursor: not-allowed; }
+
+        /* Search Bar Setup */
+        .search-box { position: relative; margin-bottom: 25px; }
+        .search-icon { position: absolute; left: 16px; top: 16px; width: 20px; height: 20px; fill: var(--text-muted); }
+        .search-box input { width: 100%; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); padding: 16px 16px 16px 48px; font-size: 15px; outline: none; transition: 0.2s; }
+        .search-box input:focus { border-color: var(--accent); box-shadow: var(--shadow-glow); }
+
+        /* Dropdown */
+        .dropdown-list {
+            position: absolute; top: 100%; left: 0; right: 0; background: #0a0a0f; border: 1px solid var(--border-color);
+            margin-top: 5px; max-height: 220px; overflow-y: auto; z-index: 10; display: none;
+        }
+        .dropdown-list.show { display: block; border-color: var(--accent); }
+        .dropdown-item { padding: 14px 16px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #1a1a24; transition: 0.1s; }
+        .dropdown-item:hover { background: var(--accent-dim); color: var(--accent); }
+
+        /* Square Chips */
+        .chip-group { display: flex; flex-wrap: wrap; gap: 10px; }
+        .chip-label { flex: 1; min-width: 60px; text-align: center; }
+        .chip-label input { display: none; }
+        .chip-text {
+            display: block; background: var(--bg-input); border: 1px solid var(--border-color);
+            padding: 14px 10px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s; color: var(--text-muted);
+        }
+        .chip-label input:checked + .chip-text {
+            background: var(--accent-dim); border-color: var(--accent); color: var(--accent); box-shadow: var(--shadow-glow);
+        }
+        .chip-label:hover .chip-text { border-color: var(--accent); }
+
+        /* =========================================
+           BUTTONS
+        ========================================= */
+        .btn {
+            background: var(--accent); color: #000; border: none; padding: 16px 20px;
+            font-weight: 600; font-size: 15px; width: 100%; cursor: pointer; transition: all 0.2s;
+        }
+        .btn:hover { background: #00c4db; box-shadow: var(--shadow-glow); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-danger:hover { background: #e01e4c; box-shadow: 0 0 15px rgba(255, 42, 95, 0.3); }
+        
+        .btn-ghost { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); transition: 0.2s; }
+        .btn-ghost:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
+
+        /* =========================================
+           TOP RIGHT TOAST NOTIFICATIONS
+        ========================================= */
+        .toast-container {
+            position: fixed; top: 85px; right: 24px; z-index: 9999;
+            display: flex; flex-direction: column; gap: 12px;
+            pointer-events: none;
+        }
+        .toast {
+            min-width: 280px; background: rgba(15, 15, 20, 0.95); backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color); border-left: 4px solid;
+            padding: 16px 20px; color: var(--text-main); font-size: 14px; font-weight: 500;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); pointer-events: auto;
+            transform: translateX(120%); opacity: 0;
+            animation: slideInToast 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+        .toast.success { border-left-color: var(--accent); }
+        .toast.error { border-left-color: var(--danger); }
+        .toast.hide { animation: slideOutToast 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+        
+        @keyframes slideInToast { to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOutToast { to { transform: translateX(120%); opacity: 0; } }
+
+        /* =========================================
+           LIST RESULTS (MANAGE TAB)
+        ========================================= */
+        .results { display: flex; flex-direction: column; gap: 15px; max-height: 500px; overflow-y: auto; padding-right: 5px; }
+        .results::-webkit-scrollbar { width: 6px; }
+        .results::-webkit-scrollbar-track { background: var(--bg-input); }
+        .results::-webkit-scrollbar-thumb { background: var(--border-color); }
+        .results::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        .config-item {
+            background: var(--bg-input); border: 1px solid var(--border-color); padding: 20px;
+            display: flex; justify-content: space-between; align-items: center; transition: 0.2s;
+            width: 100%; gap: 15px;
+        }
+        .config-item:hover { border-color: var(--accent); box-shadow: var(--shadow-glow); }
+        
+        .config-details { flex: 1; }
+        
+        /* HORIZONTAL LAYOUT WITH DIVIDER */
+        .info-row { 
+            display: flex; 
+            flex-wrap: wrap; 
+            align-items: center; 
+            gap: 10px 14px; 
+            font-size: 14px; 
+            color: var(--text-main); 
+        }
+        .info-group { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+        .info-label { color: var(--text-muted); font-weight: 500; }
+        .info-value { font-family: 'JetBrains Mono', monospace; color: var(--accent); }
+        .info-value.main { color: var(--text-main); font-weight: 600; font-size: 15px; }
+        .info-divider { color: var(--border-color); font-weight: 300; user-select: none; }
+
+        .btn-remove {
+            background: transparent; border: 1px solid var(--danger); color: var(--danger);
+            width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: 0.2s; font-size: 22px; line-height: 0; padding-bottom: 2px;
+            flex-shrink: 0;
+        }
+        .btn-remove:hover { background: var(--danger); color: #fff; box-shadow: 0 0 10px rgba(255, 42, 95, 0.4); }
+
+        .empty { text-align: center; color: var(--text-muted); padding: 40px; border: 1px dashed var(--border-color); }
+        
+        /* =========================================
+           CUSTOM CONFIRM MODAL
+        ========================================= */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+        }
+        .modal-card {
+            background: #0f0f14; border: 1px solid var(--border-color);
+            width: 100%; max-width: 420px; padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .modal-card h3 { color: var(--text-main); margin-bottom: 15px; font-family: 'JetBrains Mono', monospace; font-size: 20px; }
+        .modal-card p { color: var(--text-muted); font-size: 15px; margin-bottom: 25px; line-height: 1.6; }
+        .modal-card b { color: var(--text-main); font-weight: 600; display: inline-block; min-width: 110px; }
+        .modal-actions { display: flex; gap: 15px; }
+
+        @media (max-width: 650px) {
+            .container { padding: 20px 15px; }
+            .card { padding: 20px; }
+            .topbar { padding: 15px; height: auto; }
+            .current-email { display: none; }
+            .header-actions { width: 100%; justify-content: flex-end; }
+            /* Hide divider if screen is too small to prevent weird wrapping */
+            .info-divider { display: none; } 
+            .info-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOAST NOTIFICATIONS CONTAINER -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- LOADING SCREEN -->
+    <div id="loadingScreen">
+        <h2>CONNECTING...</h2>
+        <p>Fetching options from Dataoorts AI Cloud</p>
+    </div>
+
+    <!-- UNIVERSAL HEADER -->
+    <header class="topbar">
+        <div class="brand">Dataoorts GPU Notifier<span>.</span></div>
+        <div class="header-actions">
+            <span id="currentEmail" class="current-email"></span>
+            <button id="changeEmailBtn" class="btn-header hidden">Sign out</button>
+        </div>
+    </header>
+
+    <main>
+        <!-- LOGIN SCREEN -->
+        <section id="loginScreen" class="login-screen hidden">
+            <div class="login-card">
+                <h2>GPU Notifier By Dataoorts</h2>
+                <div class="subtitle">Enter Your Email Address to Authenticate</div>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <input id="loginEmail" type="email" placeholder="ratan@example.com" autocomplete="email" required>
+                    </div>
+                    <button class="btn" type="submit">Continue</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- MAIN APP -->
+        <section id="app" class="container hidden">
+            <div class="tabs">
+                <button class="tab-button active" data-index="0">Add Tracker</button>
+                <button class="tab-button" data-index="1">Manage Tracker</button>
+            </div>
+
+            <div id="sliderWrapper" class="slider-wrapper">
+                <div id="slider" class="slider">
+
+                    <!-- PANEL 1: ADD -->
+                    <div class="panel active">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2>Deploy GPU Tracker</h2>
+                            </div>
+                            <div class="card-description">Setup a New GPU Tracker Configuration -</div>
+
+                            <form id="addForm">
+                                <div class="form-group hidden">
+                                    <label>Email</label>
+                                    <input id="addEmail" class="email-input" type="email" readonly>
+                                </div>
+
+                                <div class="form-group dropdown-container">
+                                    <label>Select GPU Model -</label>
+                                    <input type="text" id="addValue1" placeholder="Search GPU Type..." autocomplete="off">
+                                    <div id="gpuDropdown" class="dropdown-list"></div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Select GPU Count -</label>
+                                    <div id="val2Container" class="chip-group"></div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Select Form-Factor -</label>
+                                    <div id="val3Container" class="chip-group"></div>
+                                </div>
+
+                                <button class="btn" type="submit" style="margin-top: 10px;">Deploy Configuration</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- PANEL 2: MANAGE -->
+                    <div class="panel">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2>Manage GPU Trackers</h2>
+                                <button id="refreshBtn" class="btn-header">Sync Data</button>
+                            </div>
+                            <div class="card-description">Monitor and Remove Your GPU Trackers -</div>
+
+                            <div class="search-box">
+                                <svg class="search-icon" viewBox="0 0 24 24">
+                                    <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                                </svg>
+                                <input type="text" id="searchInput" placeholder="Search GPU Model, Count or Form-Factor...">
+                            </div>
+
+                            <div id="results" class="results"></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- UNIVERSAL FOOTER -->
+    <footer>
+        &copy; 2026 Dataoorts AI Cloud. All Rights Reserved.
+    </footer>
+
+    <!-- CUSTOM CONFIRM DELETE MODAL -->
+    <div id="deleteModal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <h3>Confirm Deletion</h3>
+            <p id="deleteModalText"></p>
+            <div class="modal-actions">
+                <button id="cancelDeleteBtn" class="btn btn-ghost">Cancel</button>
+                <button id="confirmDeleteBtn" class="btn btn-danger">Delete Tracker</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================
+        // GLOBALS
+        // =========================================
+        const STORAGE_KEY = "dataoorts_email_session";
+        let currentEmail = null;
+        let currentIndex = 0;
+        let gpuList = []; 
+        let pendingDeleteData = null; 
+
+        const loadingScreen = document.getElementById("loadingScreen");
+        const loginScreen = document.getElementById("loginScreen");
+        const app = document.getElementById("app");
+        const tabButtons = document.querySelectorAll(".tab-button");
+        const panels = document.querySelectorAll(".panel");
+        const resultsContainer = document.getElementById("results");
+        const logoutBtn = document.getElementById("changeEmailBtn");
+
+        // =========================================
+        // FETCH DATA FROM BACKEND 
+        // =========================================
+        async function fetchSystemOptions() {
+            try {
+                const response = await fetch("/api/options");
+                if(!response.ok) throw new Error("Failed to connect to Dataoorts server backend.");
+                
+                const data = await response.json();
+                
+                gpuList = data.value1 || [];
+                const val2Options = data.value2 || [];
+                const val3Options = data.value3 || [];
+
+                document.getElementById("val2Container").innerHTML = val2Options.map(val => `
+                    <label class="chip-label">
+                        <input type="radio" name="val2" value="${val}">
+                        <span class="chip-text">${val}</span>
+                    </label>
+                `).join("");
+
+                document.getElementById("val3Container").innerHTML = val3Options.map(val => `
+                    <label class="chip-label">
+                        <input type="radio" name="val3" value="${val}">
+                        <span class="chip-text">${val}</span>
+                    </label>
+                `).join("");
+
+                verifySession();
+            } catch (err) {
+                loadingScreen.innerHTML = `<h2>ERROR</h2><p style="color:var(--danger)">${err.message}</p>`;
+            }
+        }
+
+        // =========================================
+        // UTILS (TOAST NOTIFICATIONS)
+        // =========================================
+        function showToast(message, type) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('hide');
+                toast.addEventListener('animationend', () => toast.remove());
+            }, 3500);
+        }
+
+        function escapeHtml(val) {
+            const div = document.createElement("div");
+            div.textContent = val ?? "";
+            return div.innerHTML;
+        }
+
+        async function apiRequest(url, options = {}) {
+            const response = await fetch(url, {
+                ...options,
+                headers: { "Content-Type": "application/json", ...(options.headers || {}) }
+            });
+            let data = {};
+            try { data = await response.json(); } catch {}
+            if (!response.ok) throw new Error(data.detail || data.message || "Request failed.");
+            return data;
+        }
+
+        // =========================================
+        // AUTHENTICATION
+        // =========================================
+        function verifySession() {
+            const savedEmail = localStorage.getItem(STORAGE_KEY);
+            loadingScreen.classList.add("hidden");
+            if (savedEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(savedEmail)) {
+                setEmail(savedEmail);
+            } else {
+                showLogin();
+            }
+        }
+
+        function setEmail(email) {
+            currentEmail = email.trim().toLowerCase();
+            localStorage.setItem(STORAGE_KEY, currentEmail);
+            document.getElementById("currentEmail").textContent = currentEmail;
+            document.getElementById("addEmail").value = currentEmail;
+            
+            logoutBtn.classList.remove("hidden");
+            loginScreen.classList.add("hidden");
+            app.classList.remove("hidden");
+            goToTab(0);
+        }
+
+        function showLogin() {
+            currentEmail = null;
+            localStorage.removeItem(STORAGE_KEY);
+            document.getElementById("currentEmail").textContent = "";
+            logoutBtn.classList.add("hidden");
+            app.classList.add("hidden");
+            loginScreen.classList.remove("hidden");
+            document.getElementById("loginEmail").value = "";
+        }
+
+        document.getElementById("loginForm").addEventListener("submit", (e) => {
+            e.preventDefault();
+            const email = document.getElementById("loginEmail").value;
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showToast("Invalid email address.", "error");
+            setEmail(email);
+        });
+
+        logoutBtn.addEventListener("click", showLogin);
+
+        // =========================================
+        // TABS LOGIC
+        // =========================================
+        function goToTab(index) {
+            currentIndex = index;
+            
+            tabButtons.forEach((btn, i) => btn.classList.toggle("active", i === index));
+            
+            panels.forEach((panel, i) => {
+                if(i === index) {
+                    panel.classList.add("active");
+                } else {
+                    panel.classList.remove("active");
+                }
+            });
+
+            if (index === 0) {
+                document.getElementById("addForm").reset();
+                document.getElementById("addEmail").value = currentEmail; 
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else if (index === 1) {
+                loadConfigurations();
+            }
+        }
+
+        tabButtons.forEach(btn => btn.addEventListener("click", () => goToTab(Number(btn.dataset.index))));
+
+        // =========================================
+        // DROPDOWN
+        // =========================================
+        const addValue1Input = document.getElementById("addValue1");
+        const gpuDropdown = document.getElementById("gpuDropdown");
+
+        function renderDropdown(filter = "") {
+            gpuDropdown.innerHTML = "";
+            const filtered = gpuList.filter(g => g.toLowerCase().includes(filter.toLowerCase()));
+            if (filtered.length === 0) {
+                gpuDropdown.innerHTML = `<div class="dropdown-item" style="color:var(--text-muted); cursor:default;">No matches found.</div>`;
+                return;
+            }
+            filtered.forEach(gpu => {
+                const div = document.createElement("div");
+                div.className = "dropdown-item";
+                div.textContent = gpu;
+                div.onclick = () => { addValue1Input.value = gpu; gpuDropdown.classList.remove("show"); };
+                gpuDropdown.appendChild(div);
+            });
+        }
+
+        addValue1Input.addEventListener("focus", () => { renderDropdown(addValue1Input.value); gpuDropdown.classList.add("show"); });
+        addValue1Input.addEventListener("input", (e) => { renderDropdown(e.target.value); gpuDropdown.classList.add("show"); });
+        document.addEventListener("click", (e) => { if (!e.target.closest('.dropdown-container')) gpuDropdown.classList.remove("show"); });
+
+        // =========================================
+        // ADD CONFIG
+        // =========================================
+        document.getElementById("addForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const value1 = addValue1Input.value.trim();
+            const value2 = document.querySelector('input[name="val2"]:checked')?.value;
+            const value3 = document.querySelector('input[name="val3"]:checked')?.value;
+
+            // Custom validation
+            if(!value1 || !value2 || !value3) {
+                return showToast("Please select all fields before saving.", "error");
+            }
+
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.textContent = "Saving..."; btn.disabled = true;
+
+            try {
+                await apiRequest("/api/config", {
+                    method: "POST",
+                    body: JSON.stringify({ email: currentEmail, value1, value2, value3 })
+                });
+                showToast("Configuration deployed successfully.", "success");
+                addValue1Input.value = "";
+                document.getElementById("addForm").reset(); 
+                document.getElementById("addEmail").value = currentEmail; 
+            } catch (error) {
+                showToast(error.message, "error");
+            } finally {
+                btn.textContent = "Deploy Configuration"; btn.disabled = false;
+            }
+        });
+
+        // =========================================
+        // VIEW & SEARCH CONFIGS
+        // =========================================
+        document.getElementById("refreshBtn").addEventListener("click", loadConfigurations);
+
+        async function loadConfigurations() {
+            if (!currentEmail) return;
+            resultsContainer.innerHTML = `<div class="empty">Syncing Data...</div>`;
+            document.getElementById("searchInput").value = ""; 
+
+            try {
+                const data = await apiRequest(`/api/config?email=${encodeURIComponent(currentEmail)}`);
+                const configs = data.data || [];
+
+                if (!configs.length) {
+                    resultsContainer.innerHTML = `<div class="empty">No Active GPU Trackers Found</div>`;
+                    return;
+                }
+
+                // Horizontal layout with | divider
+                resultsContainer.innerHTML = configs.map(config => `
+                    <div class="config-item">
+                        <div class="config-details">
+                            <div class="info-row">
+                                <span class="info-divider">|</span>
+                                <span class="info-group"><span class="info-label">GPU Model:</span> <span class="info-value main">${escapeHtml(config.value1)}</span></span>
+                                <span class="info-divider">|</span>
+                                <span class="info-group"><span class="info-label">GPU Count:</span> <span class="info-value">${escapeHtml(config.value2)}</span></span>
+                                <span class="info-divider">|</span>
+                                <span class="info-group"><span class="info-label">Form-Factor:</span> <span class="info-value">${escapeHtml(config.value3)}</span></span>
+                                <span class="info-divider">|</span>
+                            </div>
+                        </div>
+                        <button class="btn-remove" title="Remove Tracker" 
+                            onclick="triggerDelete('${escapeHtml(config.value1)}', '${escapeHtml(config.value2)}', '${escapeHtml(config.value3)}')">
+                            ×
+                        </button>
+                    </div>
+                `).join("");
+
+            } catch (error) {
+                resultsContainer.innerHTML = "";
+                showToast(error.message, "error");
+            }
+        }
+
+        // Live Search Filter
+        document.getElementById("searchInput").addEventListener("input", (e) => {
+            const term = e.target.value.toLowerCase();
+            const items = resultsContainer.querySelectorAll(".config-item");
+            let visible = 0;
+            items.forEach(item => {
+                if (item.innerText.toLowerCase().includes(term)) { item.style.display = "flex"; visible++; } 
+                else { item.style.display = "none"; }
+            });
+            
+            const existingEmpty = resultsContainer.querySelector('.empty-search');
+            if (existingEmpty) existingEmpty.remove();
+            if (visible === 0 && items.length > 0) resultsContainer.insertAdjacentHTML('beforeend', `<div class="empty empty-search">No match found.</div>`);
+        });
+
+        // =========================================
+        // CUSTOM DELETE CONFIRMATION
+        // =========================================
+        const modal = document.getElementById("deleteModal");
+        
+        window.triggerDelete = function(val1, val2, val3) {
+            pendingDeleteData = { email: currentEmail, value1: val1, value2: val2, value3: val3 };
+            
+            // Format Modal text properly
+            document.getElementById("deleteModalText").innerHTML = `Are you sure you want to remove this GPU tracking configuration?<br><br><b>GPU Model:</b> ${escapeHtml(val1)}<br><b>GPU Count:</b> ${escapeHtml(val2)}<br><b>Form-Factor:</b> ${escapeHtml(val3)}`;
+            
+            modal.classList.remove("hidden");
+        };
+        
+        document.getElementById("cancelDeleteBtn").addEventListener("click", () => {
+            modal.classList.add("hidden");
+            pendingDeleteData = null;
+        });
+        
+        document.getElementById("confirmDeleteBtn").addEventListener("click", async () => {
+            if (!pendingDeleteData) return;
+            const btn = document.getElementById("confirmDeleteBtn");
+            btn.textContent = "Deleting..."; btn.disabled = true;
+
+            try {
+                await apiRequest("/api/config", {
+                    method: "DELETE",
+                    body: JSON.stringify(pendingDeleteData)
+                });
+                modal.classList.add("hidden");
+                showToast("Configuration removed successfully.", "success");
+                loadConfigurations(); 
+            } catch (error) {
+                modal.classList.add("hidden");
+                showToast(error.message, "error");
+            } finally {
+                btn.textContent = "Delete Tracker"; btn.disabled = false;
+                pendingDeleteData = null;
+            }
+        });
+
+        // Init App
+        fetchSystemOptions();
+    </script>
+</body>
+</html>
