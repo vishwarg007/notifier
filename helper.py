@@ -1,5 +1,6 @@
-import os, requests, json
 from dotenv import load_dotenv
+import os, requests, json, calendar
+from datetime import datetime, timezone
 
 # Get the Supabase URL and API key from environment variables
 load_dotenv()
@@ -78,4 +79,23 @@ def safe_load(json_str):
     try: # Try to Load the Json String
         data = json.loads(json_str)
         return data if isinstance(data, list) else []
+    # If exception return empty set
     except: return []
+
+# Delete Database Configurations Older than Four calendar months
+def delete_older_configs():
+    now = datetime.now(timezone.utc)
+    # Calculate the exact cutoff date - four calendar months ago
+    month_index = now.month - 1 - 4
+    year = now.year + month_index // 12
+    month = month_index % 12 + 1
+    day = min(now.day, calendar.monthrange(year, month)[1])
+    cutoff = now.replace(year=year, month=month, day=day, microsecond=0)
+    cutoff_time = cutoff.isoformat().replace("+00:00", "Z")
+    response = requests.delete(TABLE_URL, headers=HEADERS, params={"created_at": f"lt.{cutoff_time}"}, timeout=15)
+    if response.status_code not in (200, 204):
+        # If row delete is not success-status-code
+        raise Exception(f"Delete old configs failed: {response.status_code} - {response.text}")
+    # If row delete is with success-status-code
+    deleted_rows = response.json() if response.status_code == 200 and response.content else []
+    return len(deleted_rows)
