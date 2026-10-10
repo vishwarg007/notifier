@@ -8,8 +8,8 @@ from fastapi.responses import FileResponse
 from collections import defaultdict, deque
 from fastapi.templating import Jinja2Templates
 from fastapi import FastAPI, HTTPException, Request, BackgroundTasks, Header
-from helper import insert_config, delete_config, get_by_key, get_gpu_description
 from helper import safe_load, clean_string, get_all_configs, fetch_and_display_offers
+from helper import insert_config, delete_config, get_by_key, get_gpu_description, delete_older_configs
 
 # Load the Env Secrets
 load_dotenv()
@@ -210,4 +210,6 @@ def process_gpu_cron():
 def trigger_cron_matcher(background_tasks: BackgroundTasks, x_cron_secret: str = Header(None)):
     if x_cron_secret != CRON_SECRET_KEY: raise HTTPException(status_code=401, detail="Unauthorized Cron Access!")
     background_tasks.add_task(process_gpu_cron)
+    try: deleted_count = delete_older_configs(); print(f"Older Configs Deleted: {deleted_count}.")
+    except Exception as e: print(f"Error to Delete Older Configs: {e}.")
     return {"status": "success", "message": "Cron Started GPU Notifier Worker in Background."}
