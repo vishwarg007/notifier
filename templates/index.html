@@ -377,7 +377,7 @@
             <div class="login-wrapper">
                 <div class="intro-wrapper">
                     <div class="intro-title">GPU Availability <span>Scheduler</span></div>
-                    <div class="intro-desc">Welcome to the GPU Availability Scheduler. Deploy a tracker for the GPUs you need, and the exact moment they become available, you will be the first to receive a priority notification.</div>
+                    <div class="intro-desc">Deploy a tracker for the GPUs you need, and the exact moment they become available, you will be the first to receive a priority notification.</div>
                 </div>
                 <div class="login-card">
                     <h2>GPU Notifier By Dataoorts</h2>
@@ -782,7 +782,7 @@
             if (!pendingDeleteData) return;
             const btn = document.getElementById("confirmDeleteBtn");
             btn.textContent = "Deleting..."; btn.disabled = true;
-
+            
             try {
                 await apiRequest("/api/config", {
                     method: "DELETE",
@@ -799,7 +799,7 @@
                 pendingDeleteData = null;
             }
         });
-
+        
         // Init App
         fetchSystemOptions();
     </script>
