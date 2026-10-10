@@ -132,6 +132,19 @@
         .login-screen {
             flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px;
         }
+        .login-wrapper {
+            width: 100%; max-width: 530px; display: flex; flex-direction: column; align-items: center;
+        }
+        .intro-wrapper {
+            text-align: center; margin-bottom: 35px; width: 100%;
+        }
+        .intro-title {
+            font-family: 'JetBrains Mono', monospace; font-size: 26px; color: var(--text-main); margin-bottom: 12px; font-weight: 700;
+        }
+        .intro-title span { color: var(--accent); }
+        .intro-desc {
+            color: var(--text-muted); font-size: 15px; line-height: 1.6; max-width: 600px; margin: 0 auto;
+        }
         .login-card {
             width: 100%; max-width: 530px; min-height: 350px;
             background: var(--bg-panel); border: 2.0px solid var(--border-color);
@@ -332,6 +345,9 @@
             /* Hide divider if screen is too small to prevent weird wrapping */
             .info-divider { display: none; } 
             .info-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+            
+            .intro-title { font-size: 22px; }
+            .intro-desc { font-size: 14px; }
         }
     </style>
 </head>
@@ -358,20 +374,31 @@
     <main>
         <!-- LOGIN SCREEN -->
         <section id="loginScreen" class="login-screen hidden">
-            <div class="login-card">
-                <h2>GPU Notifier By Dataoorts</h2>
-                <div class="subtitle">Enter Your Email Address to Authenticate</div>
-                <form id="loginForm">
-                    <div class="form-group">
-                        <input id="loginEmail" type="email" placeholder="ratan@example.com" autocomplete="email" required>
-                    </div>
-                    <button class="btn" type="submit">Continue</button>
-                </form>
+            <div class="login-wrapper">
+                <div class="intro-wrapper">
+                    <div class="intro-title">GPU Availability <span>Scheduler</span></div>
+                    <div class="intro-desc">Welcome to the GPU Availability Scheduler. Deploy a tracker for the GPUs you need, and the exact moment they become available, you will be the first to receive a priority notification.</div>
+                </div>
+                <div class="login-card">
+                    <h2>GPU Notifier By Dataoorts</h2>
+                    <div class="subtitle">Enter Your Email Address to Authenticate</div>
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <input id="loginEmail" type="email" placeholder="ratan@example.com" autocomplete="email" required>
+                        </div>
+                        <button class="btn" type="submit">Continue</button>
+                    </form>
+                </div>
             </div>
         </section>
 
         <!-- MAIN APP -->
         <section id="app" class="container hidden">
+            <div class="intro-wrapper">
+                <div class="intro-title">GPU Availability <span>Scheduler</span></div>
+                <div class="intro-desc">Welcome to the GPU Availability Scheduler. Deploy a tracker for the GPUs you need, and the exact moment they become available, you will be the first to receive a priority notification.</div>
+            </div>
+
             <div class="tabs">
                 <button class="tab-button active" data-index="0">Add Tracker</button>
                 <button class="tab-button" data-index="1">Manage Tracker</button>
@@ -641,7 +668,6 @@
 
         // =========================================
         // ADD CONFIG
-        // =========================================
         document.getElementById("addForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const value1 = addValue1Input.value.trim();
