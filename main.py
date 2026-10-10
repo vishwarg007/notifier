@@ -72,7 +72,7 @@ def add_config(payload: ConfigPayload, request: Request):
     email = validate_email(payload.email)
     check_rate_limit(request, email)
     existing_configs = get_by_key(email)
-    if len(existing_configs) >= 10: raise HTTPException(status_code=409, detail="Maximum 10 Configurations Allowed Per User.")
+    if len(existing_configs) >= 10: raise HTTPException(status_code=409, detail="Maximum 10 Active Configurations Allowed.")
     try: # Try to add the row in Database
         result = insert_config(email, payload.value1.strip(), payload.value2.strip(), payload.value3.strip())
         return {"success": True, "message": "Configuration added successfully.", "data": result}
